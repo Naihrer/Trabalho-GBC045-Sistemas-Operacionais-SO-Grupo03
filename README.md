@@ -1,0 +1,1 @@
+# Trabalho-GBC045-Sistemas-Operacionais-SO-
