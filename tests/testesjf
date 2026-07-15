@@ -1,0 +1,20 @@
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
+
+int main(int argc, char *argv[]) {
+    printf("--- Testando Syscall getruntime ---\n");
+    
+    int tempo_inicial = getruntime();
+    printf("Tempo inicial de CPU: %d ticks\n", tempo_inicial);
+
+    volatile int i;
+    for(i = 0; i < 50000000; i++) {
+        ; // Apenas consumindo tempo
+    }
+
+    int tempo_final = getruntime();
+    printf("Tempo final apos o processamento: %d ticks\n", tempo_final);
+
+    exit(0);
+}
