@@ -1,53 +1,55 @@
-Universidade Federal de Uberlândia – UFU |
-Bacharelado em Ciência da Computação |
-GBC – Sistemas Operacionais – 2026/1 |
+# Universidade Federal de Uberlândia – UFU
+**Bacharelado em Ciência da Computação**  
+**GBC045 – Sistemas Operacionais – 2026/1**
 
-Alan Thúlio Dias Costa – 12411BSI315 
+### Integrantes do Grupo
+* Alan Thúlio Dias Costa – 12411BSI315 
+* Ananda Carolliny de Sá e Silva – 12411BSI360 
+* Catiúscia da Conceição Deodato – 12411BSI340
+* Marco Thulio de Santi Roncolato – 12421BCC036 
+* Rhian Emanuel Rodrigues Pádua – 12411BCC051 
 
-Ananda Carolliny de Sá e Silva – 12411BSI360 
+---
 
-Catiúscia da Conceição Deodato – 12411BSI340
+## 1. O que é escalonamento de CPU?
+O escalonamento de CPU é o mecanismo responsável por decidir qual processo, dentre os que estão na fila de prontos, será selecionado para alocação e ser executado pela CPU. Ou seja, é o compartilhamento do processador entre múltiplos processos concorrentes em sistemas multiprogramados.
 
-Marco Thulio de Santi Roncolato – 12421BCC036 
+**Por que ele existe?**
+O escalonamento de CPU é necessário em sistemas multiprogramados, onde múltiplos processos competem para utilizar recursos da CPU ao mesmo tempo. Como apenas um processo pode utilizar a CPU por vez (em um dado núcleo), o escalonador tem como objetivo principal decidir qual processo será selecionado para execução de forma a otimizar o uso do sistema.
 
-Rhian Emanuel Rodrigues Pádua – 12411BCC051 
+## 2. System Call
+System calls ou chamadas de sistema fornecem a interface entre um programa em execução e os serviços disponibilizados pelo sistema operacional. É o meio que uma aplicação de usuário tem para solicitar que o sistema operacional execute tarefas privilegiadas em sua camada – o kernel. As chamadas de sistema provocam uma interrupção de software (trap) que altera a modalidade de usuário para a modalidade kernel, garantindo uma mudança de privilégio. O kernel examina a interrupção, verifica qual serviço foi solicitado, executa a tarefa e retorna o controle para a aplicação, voltando para a modalidade de usuário.
 
-  1. O que é escalonamento de CPU? O escalonamento de CPU é o mecanismo responsável por decidir qual processo, dentre os que estão na fila de prontos, será selecionado para alocação e ser executado pela CPU, ou seja, é o compartilhamento do processador entre múltiplos processos concorrentes em sistemas multiprogramados.
-     
-  1.1. Por que ele existe? O escalonamento de CPU é necessário em sistemas multiprogramados, onde múltiplos processos competem para utilizar recursos da CPU ao mesmo tempo. Como apenas um processo pode utilizar a CPU por vez, o escalonador tem como objetivo principal decidir qual processo será selecionado para execução.
-  
-  2. System call - System calls ou chamadas de sistema fornecem a interface entre um programa em execução e os serviços disponibilizados pelo sistema operacional, ou seja, é um meio que uma aplicação tem para solicitar que o sistema operacional execute tarefas privilegiadas em sua camada – o kernel. As chamadas de sistema provocam uma interrupção de software que, altera a modalidade de usuário para modalidade kernel, garantindo uma mudança de estado. Então o kernel examina a interrupção e verifica qual serviço foi solicitado, recebe informações necessárias, executa a tarefa e retorna o controle para a aplicação, alterando novamente para a modalidade de usuário.
+## 3. Tema 7: Algoritmo SJF e Syscall getruntime()
+Nesta proposta, designada como Tema 7 do trabalho prático, foram implementados e analisados dois elementos principais no xv6: um algoritmo de escalonamento e um mecanismo de medição de tempo de CPU.
 
-  3. Algoritmo e mecanismos implementados nesta proposta, são abordados dois elementos principais: um algoritmo de escalonamento e um mecanismo de medição de tempo de CPU.
+* **O Padrão Original – Round Robin:** O sistema operacional xv6 utiliza nativamente o algoritmo Round Robin. Esse algoritmo funciona distribuindo a CPU de forma cíclica entre os processos ativos, concedendo a cada um um intervalo de tempo fixo (*quantum*). Após esse intervalo, ocorre a preempção e a troca de contexto.
+* **O Algoritmo Implementado – Shortest Job First (SJF):** O SJF é um algoritmo de escalonamento que define como prioridade a tarefa mais curta. Entre os processos em estado de prontidão, terá prioridade aquele com o menor tempo de execução. Este algoritmo fornece o menor tempo médio de espera possível. Neste trabalho, implementamos uma heurística do SJF diretamente no kernel do xv6: o sistema rastreia o histórico de uso da CPU de cada processo e o escalonador sempre seleciona aquele que possui o menor tempo acumulado.
+* **A Syscall – getruntime():** Para viabilizar a análise do SJF, criamos a chamada de sistema `getruntime()`. Ela acessa a estrutura do processo ativo no kernel e retorna o valor acumulado do seu tempo de execução. Esse tempo é medido em *ticks* de clock gerados pelas interrupções de hardware.
 
-     i. Algoritmo de escalonamento – Round Robin O sistema operacional xv6 utiliza o algoritmo Round Robin como política padrão de escalonamento de processos. Esse algoritmo funciona distribuindo a CPU de forma cíclica entre os processos ativos, concedendo a cada um, um intervalo de tempo fixo. Após esse intervalo, ocorre a troca de contexto, permitindo que outro processo seja executado. Esse mecanismo garante o compartilhamento equilibrado da CPU, evita que processos fiquem sem executar e apresenta simplicidade de implementação.
+## 4. Funcionamento da Solução
+A solução substitui o mecanismo original do xv6, integrando a coleta de tempo com a decisão de escalonamento:
+1. **Contabilização do tempo de CPU:** A cada interrupção de temporizador de hardware (no arquivo `trap.c`), o kernel identifica o processo em execução e incrementa um contador (`runtime`) presente na sua estrutura (PCB).
+2. **Seleção via SJF:** O escalonador (no arquivo `proc.c`) varre a tabela de processos e compara o `runtime` de todos que estão no estado `RUNNABLE`. A troca de contexto é realizada para o processo que apresentar o menor valor de tempo.
+3. **Coleta com getruntime:** A chamada de sistema permite que programas de usuário consultem o tempo de CPU.
+4. **Validação:** O programa `testesjf` executa um laço de processamento chamando `getruntime()` no início e no fim, comprovando o tempo de CPU alocado para aquela tarefa sob o novo escalonador.
 
-     ii. Algoritmo analisado – Shortest Job First (SJF) O STF – Shortest Job First – é um algoritmo de escalonamento não preemptivo que define como prioridade a tarefa mais curta, ou seja, aos processos que estão em estado pronto e competem a CPU simultaneamente, terá prioridade aquele com menor tempo de execução. Este algoritmo fornece o menor tempo médio de espera possível entre os processos concorrentes quando os processos estão disponíveis simultaneamente, e tem como objetivos:
+## 5. Arquivos Modificados no xv6
+Para a entrega da Etapa 2, as seguintes modificações foram estruturadas na arquitetura do kernel e do espaço de usuário:
 
-     • Maximizar utilização da CPU – evitar ociosidade e aumentar a eficiência do sistema;
+* **`kernel/proc.c`** -> Modificação na função `scheduler` (Implementação do algoritmo SJF e varredura de processos) e `allocproc` (zerando o tempo inicial).
+* **`kernel/syscall.c`** -> Roteamento e mapeamento da nova syscall.
+* **`user/user.h`** -> Definição da interface no espaço de usuário para `getruntime()`.
+* **`kernel/proc.h`** -> Adição do campo `runtime` na estrutura `struct proc`.
+* **`kernel/trap.c`** -> Atualização do tempo do processo a cada tick de interrupção do temporizador.
+* **`kernel/syscall.h`** -> Definição do número da syscall.
+* **`user/usys.pl`** -> Inclusão do ponto de entrada (entry) para gerar o Assembly da chamada.
 
-     • Maximizar throughput (vazão) – quanto mais processos finalizados melhor desempenho;
+## 6. Roteiro de Reprodução
+Para testar o funcionamento do escalonador SJF e da chamada `getruntime()` utilizando os arquivos fornecidos nesta entrega:
 
-     • Minimizar tempo de espera (waiting time) – tempo que o processo fica na fila de prontos;
-
-     • Garantir justiça – evitar starvation e garantir que todos os processos tenham chance de executar;
-
-     O algoritmo Shortest Job First é estudado como estratégia alternativa de escalonamento e sua lógica consiste em selecionar o processo com menor tempo de CPU. Entre suas características estão a redução do tempo médio de espera, a possibilidade de implementação e a dependência de conhecimento prévio do tempo de execução. Neste trabalho, o SJF não será implementado diretamente no xv6, sendo apenas simulado com base nos dados coletados.
-
-        iii. Mecanismo implementado – getruntime A chamada de sistema getruntme() não é padrão em sistemas operacionais reais, e pode ser definida como uma extensão didática do sistema operacional xv6. Essa chamada acessa informações contidas no kernel, especificamente relacionadas à estrutura do processo, retornando o valor acumulado de tempo de execução. Esse tempo é normalmente medido em unidades chamads de ticks, que correspondem às informações do relógio do sistema. O principal mecanismo desenvolvido será a chamada de sistema getruntime, responsável por medir o tempo de CPU utilizado pelos processos. Dessa forma, este mecanismo permite monitorar o uso da CPU por processo, coletar dados reais de execução e servir como base para a simulação de algoritmos de escalonamento.
-
-4. Funcionamento da solução - A solução proposta baseia-se na integração entre o funcionamento real do xv6 e uma análise posterior dos dados coletados.
-       
-      i. Execução dos processos - Os processos são executados normalmente no xv6 sob o controle do algoritmo Round Robin. Durante a execução, o sistema alterna entre processos e cada um recebe uma fatia de tempo da CPU.
-
-     ii. Contabilização do tempo de CPU - A cada interrupção de temporizador, o sistema identifica o processo em execução e incrementa um contador de tempo associado a esse processo. Esse contador representa o tempo total de CPU consumido.
-
-    iii. Coleta dos dados com getruntime - A chamada de sistema getruntime permite consultar o tempo de CPU de um processo específico e retornar esse valor para o espaço de usuário. Esses dados podem ser exibidos na tela ou armazenados para análise posterior.
-
-    iv. Simulação do algoritmo SJF - Com os tempos coletados, um programa em linguagem C, executado fora do xv6, lê os dados e organiza os processos pelo menor tempo de CPU, gerando uma sequência que simula a execução segundo o algoritmo SJF.
-
-    v. Resultado esperado - A solução permite observar o comportamento real dos processos no xv6, comparar com uma política de escalonamento teórica e compreender o impacto da escolha do algoritmo de escalonamento.
-
-  5. Aplicações práticas - O mecanismo de execução de tempo de CPU é utilizado em escalonamento de processos, análise de desempenho, monitoramento de uso de recursos, ou seja, fornece a base para a implementação de algoritmo SJF.
-     
-  6. Considerações finais - A combinação do mecanismo getruntime() com o algoritmo SJF permite explorar, de forma prática, conceitos fundamentais de escalonamento de CPU. Embora a implementação represente uma aproximação do comportamento ideal do SJF, ela evidencia desafios reais enfrentados por sistemas operacionais, como a ausência de conhecimento prévio sobre o tempo de execução dos processos.
+1. No ambiente Linux (Ubuntu recomendado) contendo uma instalação limpa do xv6-riscv, substitua os arquivos originais pelos arquivos modificados disponibilizados na pasta `code/` deste repositório, respeitando a hierarquia de diretórios (`kernel/` e `user/`).
+2. Adicione o arquivo do programa de teste `testesjf.c` (disponível na pasta `tests/`) ao diretório `user/` e certifique-se de que ele esteja incluído no `Makefile` (UPROGS).
+3. Compile o sistema e inicie o emulador QEMU utilizando o comando:
+   ```bash
+   make qemu
